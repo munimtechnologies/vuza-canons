@@ -12,11 +12,18 @@ Amiot, Kolountzakis-Matolcsi, Jedrzejewski). Every set found is tested for
 the Coven-Meyerowitz conditions T1 and T2 (vuza.Cyclo, exact), and T2
 failures are re-checked with integer polynomial division.
 
+Where T2 is still open (0.3.0): t2open.py maps which tilings published
+theorems already cover. At every period of the 0.2.0 list (360-924) they all
+are, so T2 checks there are consistency checks. The smallest period with an
+open case is 1800 = 2^3 3^2 5^2, with factor sizes {30, 60}; the group
+"open1800" searches the Vuza blocks of exactly those sizes.
+
 Two search back-ends give the same answers:
   * PyBackend: vuza.enumerate_complements (pure Python, used by the tests),
   * CBackend: tilec.c (about 100x faster), checked against PyBackend at start.
 
 Usage: python closure.py --out-dir out [--case-minutes 20] [--total-minutes 420]
+       [--only open1800] [--per-set-seconds 60] [--dump-max 400000]
 """
 import argparse
 import array
@@ -30,9 +37,10 @@ import sys
 import tempfile
 import time
 
+import t2open
 import vuza
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -77,12 +85,28 @@ def param_tuples(N):
     return sorted(out)
 
 
+def seed_sizes(params):
+    """(|S|, |R|) of the standard canon: (n1 n2, p1 p2 n3)."""
+    n1, p1, n2, p2, n3 = params
+    return n1 * n2, p1 * p2 * n3
+
+
+def open_tuples(N):
+    """Parameter tuples at N whose standard canon has factor sizes for which
+    T2 is not yet a theorem (t2open.known_for_sizes is False)."""
+    out = []
+    for t in param_tuples(N):
+        a, b = seed_sizes(t)
+        if not t2open.known_for_sizes(N, a, b):
+            out.append(t)
+    return out
+
+
 def t2_proven_period(N):
-    """True if T2 is a theorem for every tile of period N: N has at most two
-    distinct primes (Coven-Meyerowitz) or N divides p^2 q^2 r^2 (Laba-Londner,
-    odd case and even case)."""
-    f = vuza.factorize(N)
-    return len(f) <= 2 or (len(f) == 3 and all(e <= 2 for e in f.values()))
+    """True if published theorems give T2 for every tiling of period N
+    (see t2open.py). 0.2.0 used a narrower test (two primes or N | p^2q^2r^2)
+    and wrongly listed 360-924 as open."""
+    return t2open.known_all(N)
 
 
 # ------------------------------------------------------------ back-ends
@@ -92,7 +116,7 @@ class PyBackend:
     def run(self, N, sets, time_limit, on_complement):
         """For each set X (index i): call on_complement(i, tuple) once per
         translation class of aperiodic complements (lexmin form). Returns a
-        list of stats dicts."""
+        list of stats dicts. time_limit applies to each set."""
         stats = []
         for i, X in enumerate(sets):
             st = {"sols": 0, "classes": 0, "aper_classes": 0}
@@ -177,6 +201,8 @@ def crosscheck(cbackend, pybackend=None, cases=None):
             if params == (2, 2, 3, 3, 2):
                 cases.append((N, S))
             cases.append((N, R))
+        # 0.3.0: a 29-word bit set (N = 1800); an interval has exactly one complement
+        cases.append((1800, list(range(30))))
     by_n = {}
     for N, X in cases:
         by_n.setdefault(N, []).append(X)
@@ -202,11 +228,12 @@ def crosscheck(cbackend, pybackend=None, cases=None):
 class Closure:
     """Side 0 holds outer rhythms (the seed S), side 1 inner rhythms (seed R)."""
 
-    def __init__(self, N, seeds, backend, max_classes=1000000):
+    def __init__(self, N, seeds, backend, max_classes=1000000, per_set_seconds=None):
         self.N = N
         self.backend = backend
         self.cy = vuza.Cyclo(N)
         self.max_classes = max_classes
+        self.per_set = per_set_seconds
         self.capped = False
         self.index = [{}, {}]
         self.keys = [[], []]
@@ -287,12 +314,15 @@ class Closure:
             lo = self.done[side]
             idxs = list(range(lo, lo + n))
             sets = [unpack(self.keys[side][i]) for i in idxs]
+            tl = left
+            if self.per_set:
+                tl = min(float(self.per_set), max(1.0, left / n))
 
             def on_comp(j, tup):
                 self.add(other, tup, idxs[j])
 
             try:
-                stats = self.backend.run(N, sets, left, on_comp)
+                stats = self.backend.run(N, sets, tl, on_comp)
             except Exception as e:  # keep what was found; report the error
                 self.error = repr(e)
                 break
@@ -324,6 +354,9 @@ class Closure:
         complete = (self.pending(0) == 0 and self.pending(1) == 0 and self.incomplete_enums == 0
                     and not self.capped and self.error is None)
         proven = t2_proven_period(N)
+        open_sizes = None
+        if sizes[0] * sizes[1] == N:
+            open_sizes = not t2open.known_for_sizes(N, sizes[0], sizes[1])
         return {
             "N": N, "sizes": sizes, "classes": counts, "processed": list(self.done),
             "complete": complete, "capped": self.capped, "error": self.error,
@@ -337,15 +370,18 @@ class Closure:
             "t2_examples": self.t2_examples,
             "size_distinct_primes": [vuza.n_prime_factors(s) for s in sizes],
             "t2_proven_for_period": proven,
-            "t2_open_side": [vuza.n_prime_factors(s) >= 3 and not proven for s in sizes],
+            "t2_open_for_sizes": open_sizes,
             "profiles": self.profiles, "solutions_with_0": list(self.sols), "nodes": list(self.nodes),
             "seconds": round(self.seconds, 1),
         }
 
-    def dump(self, path_prefix):
+    def dump(self, path_prefix, limit=None):
+        """Write the classes of each side, one per line (at most limit each)."""
         for side in (0, 1):
             with gzip.open("%s_side%d.txt.gz" % (path_prefix, side), "wt") as f:
-                for k in self.keys[side]:
+                for i, k in enumerate(self.keys[side]):
+                    if limit is not None and i >= limit:
+                        break
                     f.write(" ".join(map(str, unpack(k))) + "\n")
 
 
@@ -382,10 +418,10 @@ CASES = [
     ("validate", (2, 2, 3, 3, 2)), ("validate", (2, 2, 3, 3, 3)), ("validate", (2, 2, 3, 5, 2)),
     ("validate", (2, 2, 5, 3, 2)), ("validate", (2, 2, 3, 7, 2)), ("validate", (2, 2, 7, 3, 2)),
     ("validate", (4, 2, 3, 3, 2)), ("validate", (2, 2, 3, 3, 4)),
-    # N = 420 = 2^2 3 5 7: T2 is not a theorem; inner rhythms have 3 primes in their size
+    # N = 420 = 2^2 3 5 7 (T2 is a theorem here by Laba-Londner Cor. 6.2; see t2open.py)
     ("open420", (5, 7, 2, 3, 2)), ("open420", (7, 5, 2, 3, 2)), ("open420", (3, 7, 2, 5, 2)),
     ("open420", (7, 3, 2, 5, 2)), ("open420", (2, 7, 3, 5, 2)), ("open420", (2, 7, 5, 3, 2)),
-    # periods with no published enumeration, T2 not a theorem there
+    # periods with no published enumeration (T2 is a theorem at all of them; see t2open.py)
     ("new", (4, 2, 3, 5, 3)), ("new", (4, 2, 3, 7, 3)), ("new", (2, 2, 9, 5, 3)),
     ("new", (7, 5, 3, 3, 2)), ("new", (3, 3, 7, 5, 2)), ("new", (5, 11, 2, 3, 2)),
     ("new", (11, 5, 2, 3, 2)), ("new", (7, 11, 2, 3, 2)), ("new", (11, 7, 2, 3, 2)),
@@ -398,6 +434,10 @@ CASES = [
 def full_case_list():
     cases = list(CASES)
     listed = set(p for _, p in cases)
+    # 0.3.0: the smallest period where T2 is open (factor sizes 30 and 60)
+    for t in open_tuples(1800):
+        cases.append(("open1800", t))
+        listed.add(t)
     for t in param_tuples(420):
         if t not in listed:
             cases.append(("all420", t))
@@ -415,12 +455,16 @@ def main(argv=None):
     ap.add_argument("--only", default="", help="comma list of groups")
     ap.add_argument("--no-c", action="store_true")
     ap.add_argument("--max-classes", type=int, default=1000000)
+    ap.add_argument("--per-set-seconds", type=float, default=0.0, help="0 = no per-set limit")
+    ap.add_argument("--dump-max", type=int, default=400000,
+                    help="dump every class if a block has at most this many, else this many per side")
     args = ap.parse_args(argv)
     out = args.out_dir
     os.makedirs(os.path.join(out, "classes"), exist_ok=True)
     t_start = time.time()
     meta = {"version": VERSION, "python": sys.version.split()[0], "numpy": vuza._np is not None,
-            "case_minutes": args.case_minutes, "total_minutes": args.total_minutes}
+            "case_minutes": args.case_minutes, "total_minutes": args.total_minutes,
+            "per_set_seconds": args.per_set_seconds, "max_classes": args.max_classes, "only": args.only}
 
     backend = PyBackend()
     if not args.no_c:
@@ -443,8 +487,9 @@ def main(argv=None):
 
     groups = set(g for g in args.only.split(",") if g)
     results = []
-    seen_blocks = []  # (N, sizes, params, side0 key set, side1 key set or None)
+    seen_blocks = []  # (N, sizes, params, side0 key set or None, side1 key set or None)
     wav_done = set()
+    per_set = args.per_set_seconds if args.per_set_seconds > 0 else None
 
     def save():
         with open(os.path.join(out, "closure_results.json"), "w") as f:
@@ -466,14 +511,14 @@ def main(argv=None):
             continue
         kS, kR = pack(lexmin(S, N)), pack(lexmin(R, N))
         same = [b for b in seen_blocks if b[0] == N and b[1] == (len(S), len(R))
-                and (kS in b[3] or (b[4] is not None and kR in b[4]))]
+                and ((b[3] is not None and kS in b[3]) or (b[4] is not None and kR in b[4]))]
         if same:
             base["same_block_as"] = list(same[0][2])
             results.append(base)
             print("case", group, params, "N =", N, ": same block as", same[0][2], flush=True)
             continue
         print("case", group, params, "N =", N, "|S| =", len(S), "|R| =", len(R), flush=True)
-        cl = Closure(N, [(S, R)], backend, max_classes=args.max_classes)
+        cl = Closure(N, [(S, R)], backend, max_classes=args.max_classes, per_set_seconds=per_set)
         budget = min(args.case_minutes * 60, left - 60)
         if group == "heavy":
             budget = left - 60
@@ -491,12 +536,16 @@ def main(argv=None):
             if res["seed_complements_complete"][0]:
                 res["matches_sat_count"] = res["seed_complements"][0] == SAT_COUNTS[params]
         prefix = os.path.join(out, "classes", "N%d_%s" % (N, "-".join(map(str, params))))
-        if sum(res["classes"]) <= 400000:
+        if sum(res["classes"]) <= args.dump_max:
             cl.dump(prefix)
-        seen_blocks.append((N, (len(S), len(R)), params, set(cl.index[0]),
-                            set(cl.index[1]) if len(cl.index[1]) <= 200000 else None))
+        else:
+            cl.dump(prefix + "_first", limit=max(1, args.dump_max // 2))
+            res["dump_truncated"] = True
+        seen_blocks.append((N, (len(S), len(R)), params,
+                            set(cl.index[0]) if len(cl.index[0]) <= 100000 else None,
+                            set(cl.index[1]) if len(cl.index[1]) <= 100000 else None))
         # audio: one canon per new period, a non-standard outer rhythm if there is one
-        if group in ("new", "open420") and N not in wav_done:
+        if (group in ("new", "open420") or group.startswith("open")) and N not in wav_done:
             i0 = 1 if len(cl.keys[0]) > 1 else 0
             Sx = unpack(cl.keys[0][i0])
             p = cl.parent[0][i0]
@@ -514,13 +563,15 @@ def main(argv=None):
                     res["wav_error"] = repr(e)
         print(json.dumps({k: res.get(k) for k in ("N", "classes", "complete", "complete_bipartite",
                                                     "seed_complements", "t1_failures", "t2_failure_classes",
-                                                    "matches_table1", "matches_sat_count", "seconds")}),
+                                                    "t2_open_for_sizes", "matches_table1", "matches_sat_count",
+                                                    "seconds")}),
               flush=True)
         results.append(res)
         save()
 
-    # pre-registered predictions (README, P5-P9)
+    # pre-registered predictions (README, P5-P12)
     done = [r for r in results if "classes" in r]
+    opened = [r for r in done if r.get("t2_open_for_sizes")]
     pred = {
         "P5_crosscheck": meta.get("crosscheck_ok"),
         "P6_table1": [[r["params"], r["classes"], r.get("matches_table1")] for r in done if "table1_rows" in r],
@@ -529,11 +580,16 @@ def main(argv=None):
         "P8_complete_bipartite": [[r["params"], r["complete_bipartite"]] for r in done if r["complete"]],
         "P9_sat_counts": [[r["params"], r["seed_complements"][0], r["sat_count"], r.get("matches_sat_count")]
                           for r in done if "sat_count" in r],
+        "P10_open_rhythms_checked": sum(sum(r["classes"]) for r in opened),
+        "P10_open_t2_failure_classes": sum(sum(r["t2_failure_classes"]) for r in opened),
+        "P11_open_blocks": [[r["params"], r["sizes"], r["classes"], r["complete"]] for r in opened],
+        "P12_open_seeds_skipped": [[r["params"], r.get("skipped")] for r in results
+                                   if r.get("group", "").startswith("open1800") and r.get("skipped")],
     }
     summary = []
     for r in results:
         summary.append({k: r.get(k) for k in ("group", "params", "N", "sizes", "classes", "complete",
-                                              "complete_bipartite", "seed_complements", "t2_open_side",
+                                              "complete_bipartite", "seed_complements", "t2_open_for_sizes",
                                               "t1_failures", "t2_failure_classes", "same_block_as",
                                               "skipped", "seconds")})
     meta["elapsed_minutes"] = round((time.time() - t_start) / 60, 1)

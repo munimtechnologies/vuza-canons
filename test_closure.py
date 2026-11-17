@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Tests for closure.py. Made by MV2 of Munim, Inc., with AI agents.
+import gzip
 import itertools
 import os
 import tempfile
@@ -42,10 +43,28 @@ class Helpers(unittest.TestCase):
         self.assertIn((2, 2, 3, 5, 2), closure.param_tuples(120))
 
     def test_proven_periods(self):
-        for N in (72, 108, 144, 180, 900):
+        # 0.3.0: Laba-Londner Cor. 6.2 covers 360-924 (see t2open.py)
+        for N in (72, 108, 144, 180, 360, 420, 504, 840, 900, 924):
             self.assertTrue(closure.t2_proven_period(N), N)
-        for N in (120, 360, 420, 840):
+        for N in (1800, 2700, 3600):
             self.assertFalse(closure.t2_proven_period(N), N)
+
+    def test_open_tuples_1800(self):
+        ts = closure.open_tuples(1800)
+        self.assertEqual(len(ts), 24)
+        for t in ts:
+            self.assertEqual(vuza.check_params(*t), 1800)
+            self.assertIn(closure.seed_sizes(t), ((30, 60), (60, 30)))
+        for t in ((2, 2, 15, 3, 10), (6, 3, 5, 5, 4), (4, 2, 15, 3, 5), (20, 5, 3, 3, 2)):
+            self.assertIn(t, ts)
+        self.assertEqual(closure.open_tuples(420), [])
+
+    def test_seed_sizes(self):
+        N, S = vuza.vuza_outer(6, 3, 5, 5, 4)
+        _, R = vuza.vuza_inner(6, 3, 5, 5, 4)
+        self.assertEqual(N, 1800)
+        self.assertEqual((len(S), len(R)), closure.seed_sizes((6, 3, 5, 5, 4)))
+        self.assertEqual((len(S), len(R)), (30, 60))
 
 
 class PyBackendTests(unittest.TestCase):
@@ -69,6 +88,12 @@ class PyBackendTests(unittest.TestCase):
         self.assertEqual(stats[0]["sols"], brute([0, 1], 12)[0])
         self.assertEqual(stats[1]["sols"], brute([0, 1, 6, 7], 12)[0])
 
+    def test_interval_1800(self):
+        # an interval of length 30 has exactly one complement containing 0: 30 Z_1800 (periodic)
+        st = closure.PyBackend().run(1800, [list(range(30))], None, lambda i, t: None)[0]
+        self.assertEqual([st["sols"], st["classes"], st["aper_classes"]], [1, 1, 0])
+        self.assertTrue(st["complete"])
+
 
 class ClosureTests(unittest.TestCase):
     def test_closure_72(self):
@@ -82,6 +107,7 @@ class ClosureTests(unittest.TestCase):
         self.assertEqual(res["t2_failure_classes"], [0, 0])  # 72 has two primes: T2 is a theorem
         self.assertTrue(res["edges_consistent"])
         self.assertTrue(res["t2_proven_for_period"])
+        self.assertFalse(res["t2_open_for_sizes"])
         # every aperiodic complement of the standard S is in side 1
         direct = []
         closure.PyBackend().run(N, [S], None, lambda i, t: direct.append(t))
@@ -100,6 +126,15 @@ class ClosureTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             cl.dump(os.path.join(d, "x"))
             self.assertTrue(os.path.exists(os.path.join(d, "x_side1.txt.gz")))
+            cl.dump(os.path.join(d, "y"), limit=1)
+            with gzip.open(os.path.join(d, "y_side1.txt.gz"), "rt") as f:
+                self.assertEqual(len(f.read().splitlines()), 1)
+        # a per-set time limit that is never reached changes nothing
+        cl2 = closure.Closure(N, [(S, R)], closure.PyBackend(), per_set_seconds=120)
+        res2 = cl2.run(900)
+        self.assertTrue(res2["complete"])
+        self.assertEqual(res2["classes"], res["classes"])
+        self.assertEqual(sorted(cl2.classes(0)), sorted(cl.classes(0)))
 
     def test_time_budget(self):
         N, S = vuza.vuza_outer(2, 2, 3, 3, 2)
