@@ -3,7 +3,7 @@
 Exhaustive enumeration of rhythmic tiling canons (Vuza canons) and a systematic test of the
 **Coven–Meyerowitz T2 conjecture**. Also renders canons as audio.
 
-Made by MV2 of Munim, Inc., with AI agents. Licensed under Apache-2.0. Version 0.4.0.
+Made by MV2 of Munim, Inc., with AI agents. Licensed under Apache-2.0. Version 0.5.0.
 
 ## The question
 
@@ -21,6 +21,62 @@ conditions on the cyclotomic factors of a finite set of integers, T1 and T2, and
 **Whether T2 is always necessary is open.** Łaba and Londner call it the main open question in the
 theory of integer tilings. Amiot showed that any counterexample can be collapsed to a **Vuza canon** that
 fails T2, so Vuza canons are where a counterexample would have to show up.
+
+## New in 0.5.0: hunting where the weak counterexamples live (`liftsat.py`)
+
+Two 2026 preprints sharpen where a counterexample could be:
+
+- A tiling A ⊕ B = Z_M fails T2 on the B side exactly when some product N of B's prime powers has
+  Φ_N ∤ B. Tiling then forces Φ_N | A while no prime power of N divides A. Kiss, Łaba, Marshall and
+  Somlai call such a Φ_N an **unsupported divisor** of A. So every counterexample is a tile with an
+  unsupported divisor.
+- **Tan and Zhang** (arXiv:2609.06677) show that 180 is the least period of an unsupported divisor, and
+  900 the least for a three-prime one. Their period-180 tiles have size 30, signature {4, 5, 9} and
+  unsupported Φ_6:
+  - `S180` = {30j + c : j < 6, c ∈ {0, 2, 3, 4, 6}} (periodic);
+  - `C180` = the aperiodic set of their §8.1, with complement {0, 20, 40, 45, 65, 85}.
+
+  Their period-900 examples are 5·S180 and 5·C180.
+- **Kiss, Marshall, Matolcsi and Somlai** (arXiv:2611.13593) prove that tiles like these have
+  nonnegative rational **weak** complements that fail T2, for example at period 180. But "no such set
+  complement is constructed here". Dilation does not change the set question (their Prop. 6.3).
+
+`liftsat.py` asks the set question directly. Fix a source tile X of period 180, and let A run over
+**every lift** of X to Z_M, M = 180k: every set with A ≡ X mod 180, giving k choices for each of the 30
+points. Then CP-SAT searches for a set B with A ⊕ B = Z_M in which B (or A) fails T2. Because A is fixed
+mod 180, every cyclotomic order dividing 180 is decided in plain Python, so the models stay small.
+
+| configs | M | sizes | status |
+|---|---|---|---|
+| k = 1, 2, 3, 4 | 180–720 | 30 / 6k | theorem (Łaba–Londner Cor. 6.2): controls |
+| k = 5 | 900 | 30 / 30 | theorem (Łaba–Londner, p²q²r²): control |
+| 5·X lifted ×2, 2·X lifted ×5 | 1800 | 30 / 60 | theorem via dilation: **same-size controls** |
+| **k = 10** | **1800** | 30 / 60 | **open** |
+| **k = 15** | **2700** | 30 / 90 | **open** |
+| **k = 20** | **3600** | 30 / 120 | **open** |
+
+Every solver answer is re-checked from scratch: the lift, a direct tiling count, and the failing
+divisibility by two independent exact tests. `python liftsat.py --list` prints the full plan without
+the solver.
+
+### Pre-registered predictions for 0.5.0 (2026-11-18, before any run)
+
+Run: `python liftsat.py --out-dir out --workers 4 --total-minutes 320`.
+- **L1 (sources):** S180 and C180 each tile Z_180 with the published complement, satisfy T1 and T2, and
+  have Φ_6 as an unsupported divisor. Hand-checked; also in the unit tests.
+- **L2 (positive control):** every configuration finds a verified tiling without the failure condition.
+- **L3 (validation):** no T2 case is FEASIBLE in a theorem configuration. The INFEASIBLE share of the
+  three same-size 1800 controls measures whether the method is strong enough to trust at 1800.
+- **L4:** no verified T2 failure in the open configurations. We expect mostly INFEASIBLE, with some
+  UNKNOWN at 2700 and 3600.
+- **L5:** every case where a lift of S180 asks B to miss Φ_6 is INFEASIBLE. This is the case KMMS
+  Prop. 6.2 rules out for weak complements of S180 itself.
+- A verified FEASIBLE case in an open configuration would be a counterexample to the Coven–Meyerowitz
+  conjecture. It would be written to `T2_COUNTEREXAMPLE_CANDIDATES.json`, re-verified in a fresh job and
+  sent privately to specialists before any public claim.
+- **All INFEASIBLE** would be the first evidence that the known weak-counterexample tiles have no
+  T2-failing *set* complement at 1800, 2700 and 3600. This is a targeted search, not all tilings, and
+  it depends on the solver.
 
 ## Where T2 is really open (since 0.3.0)
 
@@ -44,9 +100,8 @@ wrong.** It overlooked a published reduction:
 - Below 5000 the open periods are **1800, 2700, 3528, 3600 and 4500**.
 - `python t2open.py --limit 20000` lists every open period up to 20000 with its open size pairs.
 
-## New in 0.4.0: every tiling at once (`profsat.py`)
+## 0.4.0: every tiling at once (`profsat.py`)
 
-`closure.py` samples Vuza canons one rhythm at a time. At 1800 the blocks are far too big to finish.
 `profsat.py` asks the question for **all tilings A ⊕ B = Z_1800 with |A| = 30, |B| = 60 at once**, as
 constraint problems solved with CP-SAT (Google OR-Tools):
 
@@ -54,87 +109,63 @@ constraint problems solved with CP-SAT (Google OR-Tools):
 - "Φ_d divides X(x)" is a **linear** condition on the residue counts of X mod d. With m = rad(d),
   Φ_d(x) = Φ_m(x^{d/m}), so only remainders modulo Φ_2, …, Φ_30 are needed.
 - T1 holds for every tile, so the prime powers {2, 4, 8, 3, 9, 5, 25} split between A and B in one of
-  only **12 profiles**. A T2 failure means that one side misses some product s of its own prime powers.
-  That gives 12 × (4 + 7) = **132 cases**, each one 0/1 model with 3600 set variables.
-- **All 132 INFEASIBLE** would mean that T2 holds for every tiling of period 1800, the smallest open
-  case. That would be a computer-assisted claim that depends on the solver, and it needs an independent
-  second check before anyone should call it a theorem. **A verified FEASIBLE case** would be a
-  counterexample to the Coven–Meyerowitz conjecture. Every solver answer is re-checked from scratch
-  (direct tiling count, plus exact divisibility by two independent methods).
+  only **12 profiles**. That gives 12 × (4 + 7) = **132 cases**, each one 0/1 model with 3600 set
+  variables.
+- Pre-registered P13–P16 (2026-11-17): no FEASIBLE case at 360 or 900 (validation), every profile tiles,
+  the "does not divide" encoding is not vacuous, and no verified failure at 1800.
 
-### Pre-registered predictions for 0.4.0 (2026-11-17, before any run)
-
-Run: `python profsat.py --periods 360:30,900:30,1800:30 --seconds 20,40,90 --control-seconds 20 --workers 2`.
-- **P13 (validation):** at 360 (sizes 30/12) and 900 (sizes 30/30), where T2 is a theorem, no T2 case is
-  FEASIBLE. A FEASIBLE case there would mean a bug. The share proven INFEASIBLE within the time limit
-  measures how strong the method is (reported as `validation_strength`).
-- **P14 (positive control):** for every profile at every period, the model without the failure condition
-  finds a real tiling, verified by direct counting. Coven–Meyerowitz standard sets show that one exists.
-- **P15 (encoding control):** one side alone with the failure condition always finds a set, verified
-  exactly. This shows the "Φ_s does not divide" encoding is not vacuous.
-- **P16:** no verified T2 failure at 1800. We expect a mix of INFEASIBLE and UNKNOWN in this first pilot
-  (90 seconds per case on 2 CPUs), and we will report the counts as they come out.
-- If a T2 failure is ever verified, it will be re-verified independently and sent privately to
-  specialists before any public claim.
+`liftsat.py` (0.5.0) is the targeted complement to this: profsat asks about every tiling, which is
+harder to settle, while liftsat concentrates on the tiles where weak counterexamples are known to exist.
 
 ## Everything in the repo
 
 - `vuza.py` builds the standard Vuza rhythms (Jedrzejewski 2013, Theorems 12/14, after Vuza, Hajós and
   de Bruijn) and enumerates **every** complement of a rhythm by exact-cover search. It checks T1 and T2
-  with an exact cyclotomic-zero test. Any T2 failure is re-checked with exact integer polynomial division.
+  with an exact cyclotomic-zero test.
 - `closure.py` computes the **closure** of a Vuza canon: all aperiodic complements of S, then all aperiodic
-  complements of each of those, and so on until nothing new appears. The `open1800` group covers the 24
-  standard Vuza canons of period 1800 with rhythm sizes 30 and 60.
+  complements of each of those, and so on until nothing new appears.
 - `tilec.c` is the same exact-cover search in C, roughly 100× faster, cross-checked against Python.
 - `t2open.py` is the map of where T2 is still open (see above).
-- `profsat.py` is the all-tilings profile search (see above).
+- `profsat.py` is the all-tilings profile search (0.4.0).
+- `liftsat.py` is the lift search over tiles with unsupported divisors (0.5.0).
 - WAV rendering of a canon, one pitch per voice, so the interlocking can be heard.
 
 ## Earlier pre-registered predictions
 
-### 0.1.0 (2026-11-17, before any run): complements of the standard rhythm (`run_cases.py`)
-- **P1:** every completed validation case matches the published count (Auricchio, Ferrarini, Gualandi,
-  Pernazza, arXiv 2112.05249).
-- **P2:** T1 never fails. This is a theorem, so a failure means a bug.
-- **P3:** no complement fails T2.
-- **P4:** cases that hit the time budget are reported as incomplete, never as complete.
-
-### 0.2.0 (2026-11-17, before any run): closures (`closure.py`)
-- **P5:** the C and Python searches agree on every cross-check case.
-- **P6:** for N ≤ 168 every completed closure equals a row of Jedrzejewski's Table 1 (arXiv 1304.6609).
-- **P7:** no T1 failure anywhere (a theorem), and no T2 failure. *Since 0.3.0: at every 0.2.0 period T2
-  is a theorem, so a failure there would be a bug.*
-- **P8:** every completed closure is complete bipartite. This is an open guess, not a theorem.
-- **P9:** the number of complements of the standard outer rhythm equals the published SAT counts.
-
-### 0.3.0 (2026-11-17, before any run): the smallest open period, 1800 (`closure.py --only open1800`)
-- **P10:** no rhythm in the explored part of the 1800 blocks fails T2.
-- **P11:** most 1800 blocks are reported `"complete": false`; the result is a sample.
-- **P12:** all 24 standard seeds are genuine Vuza canons.
+- **0.1.0** (`run_cases.py`): P1 published complement counts reproduced (Auricchio et al., arXiv
+  2112.05249); P2 T1 never fails; P3 no complement fails T2; P4 incomplete cases reported as incomplete.
+- **0.2.0** (`closure.py`): P5 C and Python agree; P6 closures for N ≤ 168 match Jedrzejewski's Table 1;
+  P7 no T1/T2 failure (T2 is a theorem at every 0.2.0 period); P8 every complete closure is complete
+  bipartite (an open guess); P9 complement counts match the published SAT counts.
+- **0.3.0** (`closure.py --only open1800`): P10 no T2 failure in the explored 1800 blocks; P11 most blocks
+  incomplete; P12 all 24 standard seeds are Vuza canons.
 
 The "wow" outcome would be a tile that fails T2: a counterexample to a 27-year-old conjecture. The other
-strong outcome is a computer-assisted proof that T2 holds at 1800, the smallest period no theorem covers.
+strong outcome is evidence, and eventually a computer-assisted proof, that T2 holds at 1800, the smallest
+period that no theorem covers.
 
 ## Run
 
 ```
 pip install -r requirements.txt        # numpy is optional (speed only)
-pip install -r requirements-sat.txt    # OR-Tools, only for profsat.py
-python -m unittest -v test_vuza test_closure test_t2open test_profsat
+pip install -r requirements-sat.txt    # OR-Tools, only for profsat.py and liftsat.py
+python -m unittest -v test_vuza test_closure test_t2open test_profsat test_liftsat
 python t2open.py --limit 20000 --out out/t2_open_periods.json
+python liftsat.py --list
+python liftsat.py --out-dir out --workers 4 --total-minutes 320
 python profsat.py --out-dir out --periods 360:30,900:30,1800:30 --seconds 20,40,90 --workers 2
-python closure.py --out-dir out1800 --only open1800 --case-minutes 12 --per-set-seconds 60 --max-classes 300000
 ```
 
-`profsat.py` writes `profsat_results.jsonl` (one line per model, with every tiling it found),
-`profsat_summary.json` (the predictions and counts) and, only if a T2 failure appears,
-`T2_COUNTEREXAMPLE_CANDIDATES.json`.
+`liftsat.py` writes `liftsat_plan.json`, `liftsat_results.jsonl` (one line per model, with every tiling
+found), `liftsat_summary.json` (predictions L1–L5 and counts) and, only if a T2 failure appears,
+`T2_COUNTEREXAMPLE_CANDIDATES.json`. `profsat.py` writes the same kinds of files under `profsat_*`.
 
 ## Honest limits
 
 - CP-SAT answers INFEASIBLE without a proof certificate. Until a second, independent solver (ideally one
-  that emits a checkable proof) agrees, an all-INFEASIBLE result at 1800 is strong evidence, not a theorem.
+  that emits a checkable proof) agrees, an all-INFEASIBLE result is strong evidence, not a theorem.
 - UNKNOWN means the time limit ran out; it says nothing either way.
+- `liftsat.py` covers only lifts of two source tiles (and their dilates), not every tiling.
 - A closure is one connected block, not necessarily every Vuza canon of its period.
 - `t2open.py` is only as complete as the list of results it encodes. It can only err toward calling a
   period open, never toward calling an open one closed.
@@ -145,7 +176,8 @@ python closure.py --out-dir out1800 --only open1800 --case-minutes 12 --per-set-
 - I. Łaba, I. Londner, *Combinatorial and harmonic-analytic methods for integer tilings*, arXiv:2106.14042.
 - I. Łaba, I. Londner, *The Coven–Meyerowitz tiling conditions for 3 odd prime factors*, Invent. Math. 232 (2023); *… the even case*, Res. Math. Sci. 12 (2025).
 - I. Łaba, I. Londner, *Splitting for integer tilings*, arXiv:2407.11374.
-- G. Kiss, C. Marshall, M. Matolcsi, G. Somlai, *Nonnegative weak tilings and the Coven–Meyerowitz condition (T2)*, arXiv:2611.13593 (weak tilings that fail T2; no set counterexample).
+- G. Kiss, C. Marshall, M. Matolcsi, G. Somlai, *Nonnegative weak tilings and the Coven–Meyerowitz condition (T2)*, arXiv:2611.13593.
+- H. Tan, Y. Zhang, *Unsupported cyclotomic divisors in three-prime integer tilings*, arXiv:2609.06677.
 - E. Amiot, *New perspectives on rhythmic canons and the spectral conjecture*, J. Math. Music 3 (2009).
 - F. Jedrzejewski, *Enumeration of Vuza canons*, arXiv:1304.6609.
 - M. N. Kolountzakis, M. Matolcsi, *Algorithms for translational tiling*, J. Math. Music 3 (2009).
