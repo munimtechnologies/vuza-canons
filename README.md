@@ -3,7 +3,7 @@
 Exhaustive enumeration of rhythmic tiling canons (Vuza canons) and a systematic test of the
 **Coven–Meyerowitz T2 conjecture**. Also renders canons as audio.
 
-Made by MV2 of Munim, Inc., with AI agents. Licensed under Apache-2.0. Version 0.5.0.
+Made by MV2 of Munim, Inc., with AI agents. Licensed under Apache-2.0 (notes: CC BY 4.0). Version 0.5.1.
 
 ## The question
 
@@ -22,7 +22,38 @@ conditions on the cyclotomic factors of a finite set of integers, T1 and T2, and
 theory of integer tilings. Amiot showed that any counterexample can be collapsed to a **Vuza canon** that
 fails T2, so Vuza canons are where a counterexample would have to show up.
 
-## New in 0.5.0: hunting where the weak counterexamples live (`liftsat.py`)
+## New in 0.5.1: a proof that closes the Φ₆ route below 5400 (`foldlemma.py`, `notes/fold_lemma.md`)
+
+**Proposition.** Let A ⊕ B = Z_M with |A| = 30, Φ₅ and Φ₆ dividing A(x), and Φ₂, Φ₃, Φ₁₀, Φ₁₅, Φ₃₀ not
+dividing it. Write M/180 = 5^s·k′ with 5 ∤ k′. If Φ₆ does not divide B(x), then k′ ≥ 6.
+
+The hypotheses only depend on A mod 30, so they hold for **every lift** of the Tan–Zhang tiles S180 and
+C180. Consequences:
+- At the open lift periods **1800, 2700 and 3600** (and at 4500), no set complement of such a lift misses
+  Φ₆. Prediction L5 of 0.5.0 is therefore a theorem for both tiles. A T2 failure there would have to be
+  witnessed by an order involving 8, 16, 25 or 27 (at 1800: 24, 50, 150, 200 or 600).
+- Together with Łaba–Londner Cor. 6.2, **5400 = 2³·3³·5² is the least period at which a lift of these
+  tiles could have a set complement missing Φ₆**.
+- The proof folds the tiling mod 30, where the complement's counts must have the form w(x mod 5) + v(x mod 6),
+  and mod 5^e, where Φ₂₅ | B forces 5^{e−1} | w. The second step does the work: the fold mod 30 alone
+  would allow 750 profiles at 1800.
+
+Why this was needed: KMMS Prop. 6.2 (every normalized weak complement of S180 *itself* satisfies T2) does
+not apply to lifts, because a lift's complement folds to a weak complement that is not normalized. 0.5.0
+had leaned on it for L5. The full proof is in `notes/fold_lemma.md`. `foldlemma.py` checks its
+computational steps exactly (cyclotomic remainders, the kernel over ℚ, and every surviving profile), and
+`test_foldlemma.py` asserts that it reproduces `fold_lemma.json`. **No human expert has checked the proof yet.**
+
+`fold6sat.py` (job vuza-fold6-v1) then puts the solver where the cheap argument is silent:
+- **hard negatives** k = 6–9 (M = 1080–1620): the folds allow a Φ₆ failure, but Łaba–Londner forbids
+  it. These test whether CP-SAT can find the deeper obstruction on its own;
+- **frontier** k = 30 (M = 5400): the least period the proposition leaves open for Φ₆.
+
+Pre-registered (2026-11-19, before any run): F1 every configuration tiles; F2 no FEASIBLE among the hard
+negatives; F3 no verified failure at 5400 (we expect UNKNOWN there); F4 the lemma checks reproduce
+`fold_lemma.json` inside the job.
+
+## 0.5.0: hunting where the weak counterexamples live (`liftsat.py`)
 
 Two 2026 preprints sharpen where a counterexample could be:
 
@@ -51,9 +82,9 @@ mod 180, every cyclotomic order dividing 180 is decided in plain Python, so the 
 | k = 1, 2, 3, 4 | 180–720 | 30 / 6k | theorem (Łaba–Londner Cor. 6.2): controls |
 | k = 5 | 900 | 30 / 30 | theorem (Łaba–Londner, p²q²r²): control |
 | 5·X lifted ×2, 2·X lifted ×5 | 1800 | 30 / 60 | theorem via dilation: **same-size controls** |
-| **k = 10** | **1800** | 30 / 60 | **open** |
-| **k = 15** | **2700** | 30 / 90 | **open** |
-| **k = 20** | **3600** | 30 / 120 | **open** |
+| **k = 10** | **1800** | 30 / 60 | **open** (Φ₆ case closed by the 0.5.1 proposition) |
+| **k = 15** | **2700** | 30 / 90 | **open** (Φ₆ case closed) |
+| **k = 20** | **3600** | 30 / 120 | **open** (Φ₆ case closed) |
 
 Every solver answer is re-checked from scratch: the lift, a direct tiling count, and the failing
 divisibility by two independent exact tests. `python liftsat.py --list` prints the full plan without
@@ -70,7 +101,9 @@ Run: `python liftsat.py --out-dir out --workers 4 --total-minutes 320`.
 - **L4:** no verified T2 failure in the open configurations. We expect mostly INFEASIBLE, with some
   UNKNOWN at 2700 and 3600.
 - **L5:** every case where a lift of S180 asks B to miss Φ_6 is INFEASIBLE. This is the case KMMS
-  Prop. 6.2 rules out for weak complements of S180 itself.
+  Prop. 6.2 rules out for weak complements of S180 itself. *(Added 2026-11-19: L5 is unchanged, but its
+  justification was wrong, because Prop. 6.2 does not cover lifts. The 0.5.1 proposition proves L5 for
+  k = 10, 15 and 20, so these cases are now exact negative controls. Any FEASIBLE among them is a bug.)*
 - A verified FEASIBLE case in an open configuration would be a counterexample to the Coven–Meyerowitz
   conjecture. It would be written to `T2_COUNTEREXAMPLE_CANDIDATES.json`, re-verified in a fresh job and
   sent privately to specialists before any public claim.
@@ -128,6 +161,8 @@ harder to settle, while liftsat concentrates on the tiles where weak counterexam
 - `t2open.py` is the map of where T2 is still open (see above).
 - `profsat.py` is the all-tilings profile search (0.4.0).
 - `liftsat.py` is the lift search over tiles with unsupported divisors (0.5.0).
+- `foldlemma.py`, `notes/fold_lemma.md` and `fold_lemma.json` are the fold proposition: proof, exact checks and numbers (0.5.1).
+- `fold6sat.py` runs the solver on the hard negatives and on the 5400 frontier (0.5.1).
 - WAV rendering of a canon, one pitch per voice, so the interlocking can be heard.
 
 ## Earlier pre-registered predictions
@@ -148,20 +183,24 @@ period that no theorem covers.
 
 ```
 pip install -r requirements.txt        # numpy is optional (speed only)
-pip install -r requirements-sat.txt    # OR-Tools, only for profsat.py and liftsat.py
-python -m unittest -v test_vuza test_closure test_t2open test_profsat test_liftsat
+pip install -r requirements-sat.txt    # OR-Tools, only for profsat.py, liftsat.py and fold6sat.py
+python -m unittest -v test_vuza test_closure test_t2open test_profsat test_liftsat test_foldlemma test_fold6sat
+python foldlemma.py --out out/fold_lemma_computed.json
 python t2open.py --limit 20000 --out out/t2_open_periods.json
 python liftsat.py --list
 python liftsat.py --out-dir out --workers 4 --total-minutes 320
+python fold6sat.py --out-dir out --workers 2 --total-minutes 225
 python profsat.py --out-dir out --periods 360:30,900:30,1800:30 --seconds 20,40,90 --workers 2
 ```
 
 `liftsat.py` writes `liftsat_plan.json`, `liftsat_results.jsonl` (one line per model, with every tiling
 found), `liftsat_summary.json` (predictions L1–L5 and counts) and, only if a T2 failure appears,
-`T2_COUNTEREXAMPLE_CANDIDATES.json`. `profsat.py` writes the same kinds of files under `profsat_*`.
+`T2_COUNTEREXAMPLE_CANDIDATES.json`. `profsat.py` and `fold6sat.py` write the same kinds of files under
+`profsat_*` and `fold6_*`.
 
 ## Honest limits
 
+- The fold proposition is a hand proof with machine-checked arithmetic. No human expert has refereed it yet.
 - CP-SAT answers INFEASIBLE without a proof certificate. Until a second, independent solver (ideally one
   that emits a checkable proof) agrees, an all-INFEASIBLE result is strong evidence, not a theorem.
 - UNKNOWN means the time limit ran out; it says nothing either way.
@@ -176,6 +215,7 @@ found), `liftsat_summary.json` (predictions L1–L5 and counts) and, only if a T
 - I. Łaba, I. Londner, *Combinatorial and harmonic-analytic methods for integer tilings*, arXiv:2106.14042.
 - I. Łaba, I. Londner, *The Coven–Meyerowitz tiling conditions for 3 odd prime factors*, Invent. Math. 232 (2023); *… the even case*, Res. Math. Sci. 12 (2025).
 - I. Łaba, I. Londner, *Splitting for integer tilings*, arXiv:2407.11374.
+- G. Kiss, I. Łaba, C. Marshall, G. Somlai, *Lower bounds for mask polynomials with many cyclotomic divisors*, arXiv:2507.11672 (Adv. Math. 494, 2026).
 - G. Kiss, C. Marshall, M. Matolcsi, G. Somlai, *Nonnegative weak tilings and the Coven–Meyerowitz condition (T2)*, arXiv:2611.13593.
 - H. Tan, Y. Zhang, *Unsupported cyclotomic divisors in three-prime integer tilings*, arXiv:2609.06677.
 - E. Amiot, *New perspectives on rhythmic canons and the spectral conjecture*, J. Math. Music 3 (2009).

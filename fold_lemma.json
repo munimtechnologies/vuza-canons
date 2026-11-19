@@ -1,0 +1,27 @@
+{
+ "version": "0.5.1",
+ "sources_tile_Z180": {"S180": true, "C180": true},
+ "hypotheses": {
+  "S180": {"phi_divides": {"2": false, "3": false, "5": true, "6": true, "10": false, "15": false, "30": false}, "ok": true},
+  "C180": {"phi_divides": {"2": false, "3": false, "5": true, "6": true, "10": false, "15": false, "30": false}, "ok": true}
+ },
+ "kernel": {
+  "S180": {"kernel_dim": 6, "ok": true},
+  "C180": {"kernel_dim": 6, "ok": true}
+ },
+ "table": [
+  {"k": 1, "M": 180, "e": 1, "k_prime": 1, "fold_allows_phi6_failure": false, "only_two_shared_primes": true, "admissible_profiles": 0},
+  {"k": 2, "M": 360, "e": 1, "k_prime": 2, "fold_allows_phi6_failure": false, "only_two_shared_primes": true, "admissible_profiles": 0},
+  {"k": 3, "M": 540, "e": 1, "k_prime": 3, "fold_allows_phi6_failure": false, "only_two_shared_primes": true, "admissible_profiles": 0},
+  {"k": 4, "M": 720, "e": 1, "k_prime": 4, "fold_allows_phi6_failure": false, "only_two_shared_primes": true, "admissible_profiles": 0},
+  {"k": 5, "M": 900, "e": 2, "k_prime": 1, "fold_allows_phi6_failure": false, "only_two_shared_primes": false, "admissible_profiles": 0},
+  {"k": 6, "M": 1080, "e": 1, "k_prime": 6, "fold_allows_phi6_failure": true, "only_two_shared_primes": true, "admissible_profiles": 30},
+  {"k": 10, "M": 1800, "e": 2, "k_prime": 2, "fold_allows_phi6_failure": false, "only_two_shared_primes": false, "admissible_profiles": 0},
+  {"k": 15, "M": 2700, "e": 2, "k_prime": 3, "fold_allows_phi6_failure": false, "only_two_shared_primes": false, "admissible_profiles": 0},
+  {"k": 20, "M": 3600, "e": 2, "k_prime": 4, "fold_allows_phi6_failure": false, "only_two_shared_primes": false, "admissible_profiles": 0},
+  {"k": 25, "M": 4500, "e": 3, "k_prime": 1, "fold_allows_phi6_failure": false, "only_two_shared_primes": false, "admissible_profiles": 0},
+  {"k": 30, "M": 5400, "e": 2, "k_prime": 6, "fold_allows_phi6_failure": true, "only_two_shared_primes": false, "admissible_profiles": 450}
+ ],
+ "profiles_are_weak_complements": {"6": true, "30": true},
+ "k10_profiles_without_5adic_step": 750
+}
