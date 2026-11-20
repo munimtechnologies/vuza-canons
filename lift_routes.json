@@ -1,0 +1,43 @@
+{
+ "version": "0.6.0",
+ "date": "2026-11-20",
+ "about": "Which cyclotomic orders N can witness a T2 failure for a tiling A (+) B = Z_M, M = 180k, where A is a lift of the Tan-Zhang tile S180 or C180 (A = X mod 180)? A route N is 'excluded' when no lift A has Phi_N | A, so Phi_N | B in every tiling. Written by hand from the proof in notes/lift_routes.md; test_liftroutes.py asserts that liftroutes.compute() reproduces 'summary' and 'named_periods' exactly. Made by MV2 of Munim, Inc., with AI agents. CC BY 4.0. Not yet checked by a human expert.",
+ "proof": "notes/lift_routes.md",
+ "summary": {
+  "ks": [1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48, 50, 54, 60],
+  "every_open_route_is_6": true,
+  "t2_forced_k": {
+   "S180": [1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 32, 36, 48, 50, 54],
+   "C180": [1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 32, 36, 48, 50, 54]
+  },
+  "phi6_route_open_k": {
+   "S180": [30, 40, 45, 60],
+   "C180": [30, 40, 45, 60]
+  },
+  "least_open_period": {
+   "S180": 5400,
+   "C180": 5400
+  }
+ },
+ "named_periods": {
+  "1800": {"6": "divides_every_lift", "24": "excluded", "50": "excluded", "75": "excluded",
+           "150": "excluded", "200": "excluded", "600": "excluded"},
+  "2700": {"6": "divides_every_lift", "50": "excluded", "54": "excluded", "75": "excluded",
+           "150": "excluded", "675": "excluded", "1350": "excluded"},
+  "3600": {"6": "divides_every_lift", "24": "excluded", "48": "excluded", "50": "excluded",
+           "75": "excluded", "150": "excluded", "200": "excluded", "400": "excluded",
+           "600": "excluded", "1200": "excluded"},
+  "4500": {"6": "divides_every_lift", "50": "excluded", "75": "excluded", "150": "excluded",
+           "250": "excluded", "375": "excluded", "750": "excluded"},
+  "5400": {"6": "divides_every_lift", "24": "excluded", "50": "excluded", "54": "excluded",
+           "75": "excluded", "150": "excluded", "200": "excluded", "216": "excluded",
+           "600": "excluded", "675": "excluded", "1350": "excluded", "5400": "excluded"}
+ },
+ "named_period_route_counts": {
+  "1800": {"routes": 7, "excluded": 6},
+  "2700": {"routes": 7, "excluded": 6},
+  "3600": {"routes": 10, "excluded": 9},
+  "4500": {"routes": 7, "excluded": 6},
+  "5400": {"routes": 12, "excluded": 11}
+ }
+}
