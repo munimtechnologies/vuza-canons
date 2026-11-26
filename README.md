@@ -3,7 +3,7 @@
 Exhaustive enumeration of rhythmic tiling canons (Vuza canons) and a systematic test of the
 **Coven–Meyerowitz T2 conjecture**. Also renders canons as audio.
 
-Made by MV2 of Munim, Inc., with AI agents. Licensed under Apache-2.0 (notes and results files: CC BY 4.0). Version 0.6.0.
+Made by MV2 of Munim, Inc., with AI agents. Licensed under Apache-2.0 (notes and results files: CC BY 4.0). Version 0.7.0.
 
 ## The question
 
@@ -22,7 +22,25 @@ conditions on the cyclotomic factors of a finite set of integers, T1 and T2, and
 theory of integer tilings. Amiot showed that any counterexample can be collapsed to a **Vuza canon** that
 fails T2, so Vuza canons are where a counterexample would have to show up.
 
-## New in 0.6.0: every route but Φ₆ is closed (`liftroutes.py`, `notes/lift_routes.md`)
+## New in 0.7.0: the last route is closed (`phi6close.py`, `notes/phi6_close.md`)
+
+**Theorem.** Let A be a lift of S180 or C180 to Z_{180k} (A ≡ X mod 180), where every prime factor of k is
+2, 3 or 5, and let A ⊕ B = Z_{180k}. Then Φ₆ divides B.
+
+**Corollary** (with the 0.6.0 route theorem). **Every tiling of Z_{180k} by a lift of S180 or C180 satisfies
+T2, for every k whose prime factors are 2, 3 and 5.** This settles 5400, the period that 0.6.0 left open, and
+every larger such period. By KMMS Prop. 6.3 the same holds for lifts of the period-900 dilates. With
+Łaba–Londner Cor. 6.2, the least period where a lift of these tiles is not settled is 6300 = 180·35.
+
+The proof adds two folds to the 0.5.1 fold proposition. The complement's residue counts mod 3·2^a and mod
+2·3^b turn out to be periodic, because the route theorem forces Φ_{3·2^j} and Φ_{2·3^j} into B. This makes
+B₆ divisible by 2^{a−2}·3^{b−2}. Together with the 5-adic fold, it forces the Φ₆-part v of B₃₀ to be a
+multiple of k. Nonnegativity then leaves no room for v ≠ 0. At 5400, the 0.5.1 fold allowed 450 candidate
+profiles with a Φ₆ failure; after the new divisibility, none are left. `phi6close.py` re-checks every step exactly
+for all 26 values of k ≤ 60 with those prime factors, and `test_phi6close.py` asserts that it reproduces
+`phi6_close.json`. **No human expert has checked the proof yet.**
+
+## 0.6.0: every route but Φ₆ is closed (`liftroutes.py`, `notes/lift_routes.md`)
 
 A tiling A ⊕ B = Z_M breaks T2 on the B side at an order N only if Φ_N divides A without support (an
 *unsupported divisor*). Tan and Zhang's tiles S180 and C180 are the smallest tiles with one (Φ₆), and their
@@ -31,40 +49,20 @@ A tiling A ⊕ B = Z_M breaks T2 on the B side at an order N only if Φ_N divide
 **Theorem.** If every prime factor of k is 2, 3 or 5, then no lift of S180 or C180 has Φ_N | A for any order
 N at which T2 for B could fail, except N = 6.
 
-**Corollary** (with the 0.5.1 fold proposition and Łaba–Londner Cor. 6.2). Every tiling of a lift of either
-tile satisfies T2 unless 5 | k and k′ ≥ 6 (k = 5^s·k′, 5 ∤ k′), and then the only possible failure is Φ₆ ∤ B.
-- At **1800, 2700, 3600 and 4500**, the open periods that our search targets, all lifts of both tiles satisfy
-  T2 in every tiling. At 1800 the closed orders are 24, 50, 75, 150, 200 and 600.
-- The lift question is now **one question**: at 5400 (then 7200, 8100, 10800, …), does a lift have a set
-  complement B with Φ₆ ∤ B? Job vuza-fold6-v1 asks exactly that at 5400.
-- By KMMS Prop. 6.3, the same holds for lifts of the period-900 dilates 5·S180 and 5·C180.
-
 The proof combines three exact steps: splitting a vanishing sum by classes mod p when p² | N, shifting out
 a common residue, and the Lam–Leung weight theorem. It also uses two small facts about the tiles. For example,
 the class 4 mod 5 of both tiles is 4 + 30·{0..5}. `liftroutes.py` re-derives every case mechanically for
 all 26 values of k ≤ 60 with those prime factors (the engine only ever answers "excluded" with a proof).
-`test_liftroutes.py` checks the engine against brute force on random cases and asserts that the code
-reproduces the hand-written `lift_routes.json`. **No human expert has checked the proof yet.**
 
-## 0.5.1: a proof that closes the Φ₆ route below 5400 (`foldlemma.py`, `notes/fold_lemma.md`)
+## 0.5.1: the fold proposition (`foldlemma.py`, `notes/fold_lemma.md`)
 
 **Proposition.** Let A ⊕ B = Z_M with |A| = 30, Φ₅ and Φ₆ dividing A(x), and Φ₂, Φ₃, Φ₁₀, Φ₁₅, Φ₃₀ not
 dividing it. Write M/180 = 5^s·k′ with 5 ∤ k′. If Φ₆ does not divide B(x), then k′ ≥ 6.
 
-The hypotheses only depend on A mod 30, so they hold for **every lift** of S180 and C180. Together with
-Łaba–Londner Cor. 6.2, 5400 = 2³·3³·5² is the least period at which a lift of these tiles could have a set
-complement missing Φ₆. The proof folds the tiling mod 30, where the complement's counts must have the form
-w(x mod 5) + v(x mod 6), and mod 5^e, where Φ₂₅ | B forces 5^{e−1} | w. `foldlemma.py` checks its
-computational steps exactly, and `test_foldlemma.py` asserts that it reproduces `fold_lemma.json`.
+0.7.0 strengthens this for lifts: no k with prime factors 2, 3 and 5 allows a Φ₆ failure.
 
-`fold6sat.py` (job vuza-fold6-v1) puts the solver where the cheap argument is silent:
-- **hard negatives** k = 6–9 (M = 1080–1620): the folds allow a Φ₆ failure, but Łaba–Londner forbids
-  it. These test whether CP-SAT can find the deeper obstruction on its own;
-- **frontier** k = 30 (M = 5400): after 0.6.0, the only place a lift could still break T2 below 7200.
-
-Pre-registered (2026-11-19, before any run): F1 every configuration tiles; F2 no FEASIBLE among the hard
-negatives; F3 no verified failure at 5400 (we expect UNKNOWN there); F4 the lemma checks reproduce
-`fold_lemma.json` inside the job.
+`fold6sat.py` (job vuza-fold6-v1) asks CP-SAT about k = 6–9 and k = 30 (M = 5400). After 0.7.0, every case
+it asks about has a proven negative answer, so the job can only measure the solver.
 
 ## 0.5.0: hunting where the weak counterexamples live (`liftsat.py`)
 
@@ -72,26 +70,15 @@ negatives; F3 no verified failure at 5400 (we expect UNKNOWN there); F4 the lemm
   900 the least for a three-prime one. Their period-180 tiles have size 30, signature {4, 5, 9} and
   unsupported Φ_6:
   - `S180` = {30j + c : j < 6, c ∈ {0, 2, 3, 4, 6}} (periodic);
-  - `C180` = the aperiodic set of their §8.1, with complement {0, 20, 40, 45, 65, 85}.
+  - `C180` = the aperiodic set of their §8.2, with complement {0, 20, 40, 45, 65, 85}.
+  Their Theorem 7.4 classifies every complement of one specific periodic set at the periods 180·5^j and
+  shows that each one satisfies T2. 0.7.0 covers **arbitrary** lifts, at every 5-smooth period.
 - **Kiss, Marshall, Matolcsi and Somlai** (arXiv:2611.13593) prove that tiles like these have
-  nonnegative rational **weak** complements that fail T2, for example at period 180. But "no such set
-  complement is constructed here". Dilation does not change the set question (their Prop. 6.3).
+  nonnegative rational **weak** complements that fail T2. But "no such set complement is constructed
+  here". Dilation does not change the set question (their Prop. 6.3).
 
-`liftsat.py` lets A run over **every lift** of X to Z_M, M = 180k, and asks CP-SAT for a set B with
-A ⊕ B = Z_M in which B (or A) fails T2.
-
-| configs | M | sizes | status |
-|---|---|---|---|
-| k = 1, 2, 3, 4 | 180–720 | 30 / 6k | theorem (Łaba–Londner Cor. 6.2): controls |
-| k = 5 | 900 | 30 / 30 | theorem (Łaba–Londner, p²q²r²): control |
-| 5·X lifted ×2, 2·X lifted ×5 | 1800 | 30 / 60 | theorem via dilation: same-size controls |
-| k = 10 | 1800 | 30 / 60 | **now a theorem for lifts (0.6.0)**: exact negative controls |
-| k = 15 | 2700 | 30 / 90 | **now a theorem for lifts (0.6.0)** |
-| k = 20 | 3600 | 30 / 120 | **now a theorem for lifts (0.6.0)** |
-
-Pre-registered predictions L1–L5 (2026-11-18, before any run) are unchanged. After 0.6.0, every T2 case
-in liftsat's open configurations is known to be INFEASIBLE, so any FEASIBLE answer there is a bug, and
-the job measures solver strength on cases with known answers.
+`liftsat.py` lets A run over every lift of X to Z_M, M = 180k, and asks CP-SAT for a set B with
+A ⊕ B = Z_M in which B (or A) fails T2. After 0.7.0, every one of its cases is a proven negative.
 
 ## Where T2 is really open (since 0.3.0)
 
@@ -101,8 +88,10 @@ the job measures solver strength on cases with known answers.
   Res. Math. Sci. 2025) and for the families of their splitting theorem (arXiv:2407.11374, Thm 1.2).
 - `t2open.py` encodes exactly these published results. By our reading, **the smallest period where some
   tiling is not covered is M = 1800 = 2³·3²·5²** (sizes {30, 60}), and below 5000 the open periods are
-  1800, 2700, 3528, 3600 and 4500. 0.6.0 settles the lifts of the Tan–Zhang tiles there, **not** every
-  tiling at those periods.
+  1800, 2700, 3528, 3600 and 4500. 0.6.0 and 0.7.0 settle the lifts of the Tan–Zhang tiles there, **not**
+  every tiling at those periods.
+- A preprint (Prajapati, arXiv:2609.22280) claims a proof of T2 for all integer tiles. It is unrefereed, and
+  we treat T2 as open.
 
 ## 0.4.0: every tiling at once (`profsat.py`)
 
@@ -116,8 +105,10 @@ CP-SAT cases (12 T1 profiles × 11 T2 conditions). Pre-registered P13–P16 (202
 - `profsat.py`: the all-tilings profile search (0.4.0).
 - `liftsat.py`: the lift search over tiles with unsupported divisors (0.5.0).
 - `foldlemma.py`, `notes/fold_lemma.md`, `fold_lemma.json`: the fold proposition (0.5.1).
-- `fold6sat.py`: the solver on the hard negatives and on the 5400 frontier (0.5.1).
+- `fold6sat.py`: the solver on the hard negatives and on 5400 (0.5.1).
 - `liftroutes.py`, `notes/lift_routes.md`, `lift_routes.json`: every route but Φ₆ closed (0.6.0).
+- `phi6close.py`, `notes/phi6_close.md`, `phi6_close.json`: Φ₆ closed, T2 for every lift at 5-smooth
+  periods (0.7.0).
 - WAV rendering of a canon, one pitch per voice, so the interlocking can be heard.
 
 ## Earlier pre-registered predictions
@@ -129,16 +120,19 @@ CP-SAT cases (12 T1 profiles × 11 T2 conditions). Pre-registered P13–P16 (202
   counts match the published SAT counts.
 - **0.3.0** (`closure.py --only open1800`): P10 no T2 failure in the explored 1800 blocks; P11 most blocks
   incomplete; P12 all 24 standard seeds are Vuza canons.
+- **0.5.0 / 0.5.1**: L1–L5 (liftsat) and F1–F4 (fold6sat). F3 predicted "no verified failure at 5400"; it
+  is now a theorem.
 
 The "wow" outcome would be a tile that fails T2: a counterexample to a 27-year-old conjecture. For the lifts
-of the smallest unsupported tiles, that question now sits entirely at Φ₆ and period 5400 or above.
+of the smallest unsupported tiles, the answer is now no at every period whose prime factors are 2, 3 and 5.
 
 ## Run
 
 ```
 pip install -r requirements.txt        # numpy is optional (speed only)
 pip install -r requirements-sat.txt    # OR-Tools, only for profsat.py, liftsat.py and fold6sat.py
-python -m unittest -v test_vuza test_closure test_t2open test_profsat test_liftsat test_foldlemma test_fold6sat test_liftroutes
+python -m unittest -v test_vuza test_closure test_t2open test_profsat test_liftsat test_foldlemma test_fold6sat test_liftroutes test_phi6close
+python phi6close.py --out-dir out
 python liftroutes.py --out-dir out
 python foldlemma.py --out out/fold_lemma_computed.json
 python t2open.py --limit 20000 --out out/t2_open_periods.json
@@ -148,9 +142,9 @@ python fold6sat.py --out-dir out --workers 2 --total-minutes 225
 
 ## Honest limits
 
-- The fold proposition and the route theorem are hand proofs with machine-checked case analysis. No human
-  expert has refereed them yet.
-- They cover only lifts of two source tiles (and their dilates), not every tiling at 1800–4500.
+- The fold proposition, the route theorem and the Φ₆ theorem are hand proofs with machine-checked finite
+  steps. No human expert has refereed them yet.
+- They cover only lifts of two source tiles (and their dilates), not every tiling at these periods.
 - CP-SAT answers INFEASIBLE without a proof certificate; UNKNOWN means the time limit ran out.
 - `t2open.py` is only as complete as the list of results it encodes. It can only err toward calling a
   period open, never toward calling an open one closed.
