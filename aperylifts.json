@@ -1,0 +1,85 @@
+{
+ "about": "vuza-canons 0.8.0 results (CC BY 4.0). Lifts of the standard Tan-Zhang tiles X_{p,q,r} (arXiv:2609.06677, Thm 7.1 with L = r, h = 1). cells[u][t] = number of Apery elements s with s = u mod p and s = t mod q. C1, C2, C3 are the exact route conditions of notes/apery_lifts.md: C1 and C2 force Phi_pq into every complement of every lift; with C3 (or when pqr does not divide k) every tiling by a lift satisfies T2 at every period. A witness is an explicit lift to Z_{M0 pq} that carries Phi_{p^3 q^3} and still tiles, showing that the route is open when C3 fails. Written by hand; test_aperylifts.py asserts that aperylifts.py reproduces every value. Made by MV2 of Munim, Inc., with AI agents.",
+ "version": "0.8.0",
+ "summary": {
+  "phi_pq_forced": ["2,3,5", "2,3,7", "2,3,11", "2,3,13", "2,3,17", "2,3,19", "2,5,7"],
+  "t2_every_period": ["2,3,5", "2,3,7", "2,3,11", "2,3,13", "2,5,7"],
+  "open_route": ["2,3,17", "2,3,19"],
+  "every_apery_poly_ok": true,
+  "every_brute_ok": true,
+  "every_tile_ok": true,
+  "every_witness_ok": true
+ },
+ "family_23": {
+  "primes": 44,
+  "closed_form_ok": true,
+  "C1_all": true,
+  "C2_all": true,
+  "C3_primes": [5, 7, 11, 13]
+ },
+ "triples": {
+  "2,3,5": {
+   "apery": [0, 2, 3, 4, 6],
+   "apery_poly_ok": true,
+   "cells": [[2, 1, 1], [1, 0, 0]],
+   "C1": true, "C2": true, "C3": true,
+   "phi_pq_forced": true, "t2_every_period": true, "brute_ok": true,
+   "tile": {"M0": 180, "size": 30, "tiles": true, "S_X": [4, 5, 9], "fold": [5, 6], "t2": true},
+   "witness": null
+  },
+  "2,3,7": {
+   "apery": [0, 2, 3, 4, 5, 6, 8],
+   "apery_poly_ok": true,
+   "cells": [[2, 1, 2], [1, 0, 1]],
+   "C1": true, "C2": true, "C3": true,
+   "phi_pq_forced": true, "t2_every_period": true, "brute_ok": true,
+   "tile": {"M0": 252, "size": 42, "tiles": true, "S_X": [4, 7, 9], "fold": [6, 7], "t2": true},
+   "witness": null
+  },
+  "2,3,11": {
+   "apery": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12],
+   "apery_poly_ok": true,
+   "cells": [[3, 2, 2], [2, 1, 1]],
+   "C1": true, "C2": true, "C3": true,
+   "phi_pq_forced": true, "t2_every_period": true, "brute_ok": true,
+   "tile": {"M0": 396, "size": 66, "tiles": true, "S_X": [4, 9, 11], "fold": [6, 11], "t2": true},
+   "witness": null
+  },
+  "2,3,13": {
+   "apery": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14],
+   "apery_poly_ok": true,
+   "cells": [[3, 2, 3], [2, 1, 2]],
+   "C1": true, "C2": true, "C3": true,
+   "phi_pq_forced": true, "t2_every_period": true, "brute_ok": true,
+   "tile": {"M0": 468, "size": 78, "tiles": true, "S_X": [4, 9, 13], "fold": [6, 13], "t2": true},
+   "witness": null
+  },
+  "2,3,17": {
+   "apery": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18],
+   "apery_poly_ok": true,
+   "cells": [[4, 3, 3], [3, 2, 2]],
+   "C1": true, "C2": true, "C3": false,
+   "phi_pq_forced": true, "t2_every_period": false, "brute_ok": true,
+   "tile": {"M0": 612, "size": 102, "tiles": true, "S_X": [4, 9, 17], "fold": [6, 17], "t2": true},
+   "witness": {"N": 216, "M": 3672, "is_lift": true, "phi_N_divides": true, "tiles": true}
+  },
+  "2,3,19": {
+   "apery": [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20],
+   "apery_poly_ok": true,
+   "cells": [[4, 3, 4], [3, 2, 3]],
+   "C1": true, "C2": true, "C3": false,
+   "phi_pq_forced": true, "t2_every_period": false, "brute_ok": true,
+   "tile": {"M0": 684, "size": 114, "tiles": true, "S_X": [4, 9, 19], "fold": [6, 19], "t2": true},
+   "witness": {"N": 216, "M": 4104, "is_lift": true, "phi_N_divides": true, "tiles": true}
+  },
+  "2,5,7": {
+   "apery": [0, 2, 4, 5, 6, 8, 10],
+   "apery_poly_ok": true,
+   "cells": [[2, 1, 1, 1, 1], [1, 0, 0, 0, 0]],
+   "C1": true, "C2": true, "C3": true,
+   "phi_pq_forced": true, "t2_every_period": true, "brute_ok": true,
+   "tile": {"M0": 700, "size": 70, "tiles": true, "S_X": [4, 7, 25], "fold": [7, 10], "t2": true},
+   "witness": null
+  }
+ }
+}
